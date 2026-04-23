@@ -245,6 +245,16 @@ class S3StorageConfigTest {
     }
 
     @Test
+    void withEmptyStorageClassReturnsNull() {
+        final var configs = new java.util.HashMap<String, Object>();
+        configs.put("s3.bucket.name", BUCKET_NAME);
+        configs.put("s3.region", TEST_REGION.id());
+        configs.put("s3.storage.class", "");
+        final var config = new S3StorageConfig(configs);
+        assertThat(config.storageClass()).isNull();
+    }
+
+    @Test
     void withRequireStorageClassInAllowList() {
         assertThatThrownBy(() -> new S3StorageConfig(Map.of(
             "s3.bucket.name", BUCKET_NAME,

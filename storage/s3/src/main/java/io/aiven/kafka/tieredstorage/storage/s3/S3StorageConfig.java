@@ -29,6 +29,7 @@ import org.apache.kafka.common.config.ConfigException;
 
 import io.aiven.kafka.tieredstorage.config.validators.NonEmptyPassword;
 import io.aiven.kafka.tieredstorage.config.validators.Null;
+import io.aiven.kafka.tieredstorage.config.validators.NullOrEmpty;
 import io.aiven.kafka.tieredstorage.config.validators.Subclass;
 import io.aiven.kafka.tieredstorage.config.validators.ValidUrl;
 
@@ -52,7 +53,7 @@ public class S3StorageConfig extends AbstractConfig {
 
     public static final String S3_STORAGE_CLASS_CONFIG = "s3.storage.class";
     private static final String S3_STORAGE_CLASS_DOC = "Defines which storage class to use when uploading objects. "
-        + "When not set, no storage class is specified and the S3 SDK default applies.";
+        + "Set to empty string to omit the storage class header and use the bucket default.";
     static final String S3_STORAGE_CLASS_DEFAULT = StorageClass.STANDARD.toString();
 
     static final String S3_PATH_STYLE_ENABLED_CONFIG = "s3.path.style.access.enabled";
@@ -127,7 +128,7 @@ public class S3StorageConfig extends AbstractConfig {
                 S3_STORAGE_CLASS_CONFIG,
                 ConfigDef.Type.STRING,
                 S3_STORAGE_CLASS_DEFAULT,
-                Null.or(ConfigDef.ValidString.in(StorageClass.knownValues()
+                NullOrEmpty.or(ConfigDef.ValidString.in(StorageClass.knownValues()
                         .stream().map(Object::toString).toArray(String[]::new))),
                 ConfigDef.Importance.LOW,
                 S3_STORAGE_CLASS_DOC)
@@ -276,7 +277,10 @@ public class S3StorageConfig extends AbstractConfig {
 
     public StorageClass storageClass() {
         final String value = getString(S3_STORAGE_CLASS_CONFIG);
-        return value != null ? StorageClass.valueOf(value) : null;
+        if (value == null || value.isEmpty()) {
+            return null;
+        }
+        return StorageClass.valueOf(value);
     }
 
     public Boolean pathStyleAccessEnabled() {
