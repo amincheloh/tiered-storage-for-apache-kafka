@@ -113,6 +113,30 @@ class S3UploadOutputStreamTest {
     }
 
     @Test
+    void completeMultipartUploadWithNullStorageClassDoesNotSetStorageClass() throws IOException {
+        final S3UploadOutputStream s3UploadOutputStream = new S3UploadOutputStream(BUCKET_NAME, FILE_KEY,
+            null, 1, mockedS3);
+        when(mockedS3.uploadPart(any(UploadPartRequest.class), any(RequestBody.class)))
+            .thenReturn(newUploadPartResponse("SOME_ETAG#1"));
+        s3UploadOutputStream.write(1);
+        verify(mockedS3).createMultipartUpload(createMultipartUploadRequest.capture());
+        assertThat(createMultipartUploadRequest.getValue().storageClass()).isNull();
+    }
+
+    @Test
+    void writesSmallFileWithNullStorageClassDoesNotSetStorageClass() throws IOException {
+        when(mockedS3.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
+            .thenReturn(newPutObjectResponse("SOME_ETAG"));
+
+        final var out = new S3UploadOutputStream(BUCKET_NAME, FILE_KEY, null, 2, mockedS3);
+        out.write(new byte[] {1});
+        out.close();
+
+        verify(mockedS3).putObject(putObjectRequestCaptor.capture(), any(RequestBody.class));
+        assertThat(putObjectRequestCaptor.getValue().storageClass()).isNull();
+    }
+
+    @Test
     void sendAbortForAnyExceptionWhileWriting() {
         final RuntimeException testException = new RuntimeException("test");
         when(mockedS3.uploadPart(any(UploadPartRequest.class), any(RequestBody.class)))
